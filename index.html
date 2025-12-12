@@ -3,188 +3,286 @@
 <head>
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width,initial-scale=1" />
-<title>Question Timer — Optimized</title>
+<title>Question Timer — Enhanced</title>
 <style>
   :root{
-    --bg:#1f1f1f; --panel:#222; --muted:#9aa0a6; --accent:#bfbfbf;
-    --primary:#6ee7b7; --danger:#ff6b6b; --glass: rgba(255,255,255,0.03);
+    --bg-dark: #0f1012;
+    --bg-gradient: radial-gradient(circle at 50% 0%, #252a30, #050505);
+    --card-bg: rgba(30, 32, 35, 0.65);
+    --glass-border: rgba(255, 255, 255, 0.08);
+    --primary: #4ade80; /* Vibrant Green */
+    --danger: #ef4444;  /* Vibrant Red */
+    --accent: #38bdf8;  /* Sky Blue */
+    --text-main: #f3f4f6;
+    --text-muted: #9ca3af;
+    --font-ui: 'Inter', system-ui, -apple-system, sans-serif;
   }
-  html,body{height:100%;margin:0;background:var(--bg);font-family:Inter,system-ui,Segoe UI,Roboto,Arial;color:#eee}
-  .app{min-height:100vh;display:flex;align-items:center;justify-content:center;padding:24px;box-sizing:border-box}
-
-  /* Timer Card - PC Optimized */
-  .card{width:420px; /* Increased size for PC */
-    max-width:94vw;background:linear-gradient(180deg, rgba(255,255,255,0.02), rgba(255,255,255,0.01));
-    border-radius:18px; /* Slightly larger border-radius */
-    padding:25px; /* Increased padding */
-    box-shadow:0 12px 40px rgba(0,0,0,0.6);border:1px solid rgba(255,255,255,0.03);text-align:center;
+  html,body{height:100%;margin:0;background:var(--bg-dark);background-image:var(--bg-gradient);font-family:var(--font-ui);color:var(--text-main);overflow-x:hidden}
+  
+  .app{
+    min-height:100vh; display:flex; align-items:center; justify-content:center; padding:20px; box-sizing:border-box;
   }
-  .top-row{display:flex;justify-content:space-between;align-items:center;margin-bottom:16px}
-  .qcount{font-size:22px;color:var(--accent);letter-spacing:0.6px}
-  .totaltime{font-size:14px;color:var(--muted)}
 
-  .circle-wrap{display:flex;align-items:center;justify-content:center;position:relative;margin:10px 0 16px}
-  .svg-circle{width:280px; /* Increased circle size */
-    height:280px;position:relative}
-  .center-label{position:absolute;left:50%;top:50%;transform:translate(-50%,-50%);pointer-events:none;text-align:center}
-  .center-main{font-size:32px; /* Larger text */
-    color:#d7d7d7;font-weight:600;letter-spacing:0.4px}
-  .center-sub{font-size:13px;color:var(--muted);margin-top:8px}
-  .time-row{margin-top:14px;font-size:20px;color:var(--accent);display:flex;justify-content:center;gap:10px;align-items:center}
-  .time-row .small{color:var(--muted);font-size:17px}
+  /* --- MAIN CARD --- */
+  .card{
+    position: relative;
+    width: 100%; max-width: 440px; /* Mobile Default */
+    background: var(--card-bg);
+    backdrop-filter: blur(24px); -webkit-backdrop-filter: blur(24px);
+    border: 1px solid var(--glass-border);
+    border-radius: 24px;
+    padding: 24px;
+    box-shadow: 0 20px 50px -10px rgba(0,0,0,0.5);
+    display: flex; flex-direction: column; gap: 20px;
+    transition: max-width 0.4s ease, padding 0.4s ease;
+  }
 
-  .controls{display:flex;justify-content:space-between;align-items:center;margin-top:20px}
-  .circle-btn{width:76px;height:76px; /* Larger buttons */
-    border-radius:50%;display:inline-flex;align-items:center;justify-content:center;background:var(--glass);border:1px solid rgba(255,255,255,0.03);color:#ddd;font-size:22px;cursor:pointer;transition:background 0.2s}
-  .circle-btn:hover{background:rgba(255,255,255,0.05)}
-  .circle-btn:active{transform:scale(.98)}
-  .btn-label{font-size:12px;color:var(--muted);margin-top:8px}
+  /* --- LANDSCAPE / PC OPTIMIZATION --- */
+  @media (min-width: 900px) {
+    .card {
+      max-width: 900px; /* Wide card */
+      flex-direction: row; /* Side-by-side layout */
+      align-items: stretch;
+      padding: 32px;
+      gap: 40px;
+    }
+    .panel-left {
+      flex: 1; display: flex; flex-direction: column; 
+      align-items: center; justify-content: center;
+      border-right: 1px solid var(--glass-border);
+      padding-right: 40px;
+    }
+    .panel-right {
+      flex: 1; display: flex; flex-direction: column; justify-content: space-between;
+    }
+    /* Hide top border on right panel in desktop, show on mobile */
+  }
 
-  .middle-actions{display:flex;gap:16px;align-items:center;justify-content:center}
-  .attempt-btn{padding:10px 16px;border-radius:12px;background:#2a2a2a;border:1px solid rgba(255,255,255,0.03);color:#ddd;cursor:pointer;font-weight:600;transition:background 0.2s}
-  .attempt-btn:hover{background:#3a3a3a}
-  .hud{display:flex;justify-content:space-between;margin-top:14px;align-items:center;gap:10px}
-  .chip{background:rgba(255,255,255,0.02);padding:8px 12px;border-radius:10px;color:var(--muted);font-size:14px}
+  /* --- TYPOGRAPHY & UTILS --- */
+  h1,h2,h3,p{margin:0}
+  .mono-digit { font-variant-numeric: tabular-nums; letter-spacing: -0.5px; }
+  .label { font-size: 12px; text-transform: uppercase; letter-spacing: 0.8px; color: var(--text-muted); font-weight: 600; margin-bottom: 6px; }
 
-  .settings{margin-top:16px;text-align:left;display:flex;gap:12px;align-items:center;justify-content:space-between}
-  .settings input{width:90px;padding:9px;background:#151515;border:1px solid rgba(255,255,255,0.03);color:#ddd;border-radius:8px;font-size:15px}
-  .settings button{padding:9px 14px;border-radius:10px;background:#3b3b3b;border:none;color:#fff;cursor:pointer;font-weight:600;transition:background 0.2s}
-  .settings button:hover{background:#4b4b4b}
+  /* --- LEFT PANEL: TIMER --- */
+  .timer-wrapper { position: relative; width: 280px; height: 280px; margin: 0 auto; display: flex; align-items: center; justify-content: center; }
+  
+  .svg-circle { width: 100%; height: 100%; transform: rotate(-90deg); }
+  .circle-bg { stroke: rgba(255,255,255,0.03); stroke-width: 6; fill: none; }
+  .circle-prog { 
+    stroke: var(--primary); stroke-width: 6; stroke-linecap: round; fill: none; 
+    transition: stroke-dashoffset 0.1s linear, stroke 0.3s ease;
+    filter: drop-shadow(0 0 4px rgba(74, 222, 128, 0.4));
+  }
+  .circle-btn-overlay {
+    position: absolute; inset: 10px; border-radius: 50%; border: none; background: transparent; cursor: pointer; z-index: 10;
+  }
+  
+  /* Center Text inside Ring */
+  .timer-center {
+    position: absolute; text-align: center; pointer-events: none; z-index: 5;
+    display: flex; flex-direction: column; align-items: center;
+  }
+  .timer-main-text { font-size: 36px; font-weight: 700; color: #fff; text-shadow: 0 4px 12px rgba(0,0,0,0.5); }
+  .timer-sub-text { font-size: 13px; color: var(--text-muted); margin-top: 4px; }
 
-  .time-alert{margin-top:14px;color:var(--danger);font-weight:700;font-size:18px;opacity:0;transition:opacity 1.2s ease, transform .4s ease}
-  .time-alert.show{opacity:1;transform:translateY(-4px)}
-  .pulse {animation:pulseRing 1s infinite ease-in-out}
-  @keyframes pulseRing{0%{transform:scale(1)}50%{transform:scale(1.02)}100%{transform:scale(1)}}
+  /* Time Display below ring */
+  .time-readout {
+    margin-top: 20px; text-align: center;
+  }
+  .big-time { font-size: 32px; font-weight: 700; color: var(--text-main); }
+  .target-time { font-size: 16px; color: var(--text-muted); margin-top: 2px; }
 
-  /* Summary (full screen) */
-  .summary-screen{position:fixed;inset:0;background:rgba(10,10,10,0.95);display:none;align-items:center;justify-content:center;z-index:999;padding:20px}
-  .summary-card{width:960px; /* Increased size for PC */
-    max-width:98vw;background:#0f0f0f;border-radius:16px;padding:25px;color:#eee;box-shadow:0 30px 60px rgba(0,0,0,0.7);overflow:hidden;display:flex;gap:20px}
-  .summary-left{width:380px;min-width:320px;padding:15px;border-right:1px solid rgba(255,255,255,0.03)}
-  .summary-right{flex:1;padding:15px;max-height:70vh;overflow:auto}
-  .stat{margin-bottom:14px;padding:15px;border-radius:12px;background:rgba(255,255,255,0.02)}
-  .stat h3{margin:0 0 8px 0;font-size:15px;color:var(--muted)}
-  .stat p{margin:0;font-size:24px;font-weight:700;color:#fff}
-  .times-list{margin-top:10px}
-  .times-list .row{display:flex;justify-content:space-between;padding:10px 8px;border-bottom:1px dashed rgba(255,255,255,0.03);font-size:15px}
-  .summary-actions{display:flex;gap:12px;margin-top:16px}
-  .summary-actions button{padding:10px 14px;border-radius:10px;border:none;background:#2b2b2b;color:#fff;cursor:pointer;transition:background 0.2s}
-  .summary-actions button:hover{background:#3b3b3b}
-  .small-muted{color:var(--muted);font-size:14px}
-  @media (max-width:980px){.summary-card{flex-direction:column}.summary-left{width:100%;border-right:none;border-bottom:1px solid rgba(255,255,255,0.03)}}
+  /* Alerts */
+  .time-alert {
+    margin-top: 12px; color: var(--danger); font-weight: 800; font-size: 18px; 
+    text-align: center; height: 24px; opacity: 0; transform: translateY(10px);
+    transition: all 0.3s ease; text-shadow: 0 0 10px rgba(239,68,68,0.4);
+  }
+  .time-alert.visible { opacity: 1; transform: translateY(0); }
+  .pulse-ring { animation: pulseRed 1.5s infinite; }
+  @keyframes pulseRed { 0%{filter:drop-shadow(0 0 2px var(--danger))} 50%{filter:drop-shadow(0 0 10px var(--danger))} 100%{filter:drop-shadow(0 0 2px var(--danger))} }
+
+  /* --- RIGHT PANEL: CONTROLS & HUD --- */
+  .header-row { display: flex; justify-content: space-between; align-items: flex-end; margin-bottom: 20px; border-bottom: 1px solid var(--glass-border); padding-bottom: 12px; }
+  .q-counter { font-size: 18px; color: var(--accent); font-weight: 600; }
+  .total-time { font-size: 13px; color: var(--text-muted); font-family: monospace; }
+
+  /* HUD Grid */
+  .hud-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 24px; }
+  .hud-item { background: rgba(255,255,255,0.03); border-radius: 12px; padding: 12px; display: flex; flex-direction: column; align-items: flex-start; }
+  .hud-val { font-size: 18px; font-weight: 700; color: #fff; margin-top: 4px; }
+
+  /* Control Buttons */
+  .controls-row { display: flex; gap: 12px; justify-content: space-between; align-items: center; margin-bottom: 24px; }
+  
+  .btn-icon {
+    width: 64px; height: 64px; border-radius: 50%; border: 1px solid var(--glass-border);
+    background: linear-gradient(145deg, rgba(255,255,255,0.05), rgba(255,255,255,0.01));
+    color: #eee; font-size: 24px; cursor: pointer; transition: all 0.2s;
+    display: flex; align-items: center; justify-content: center;
+    box-shadow: 0 4px 12px rgba(0,0,0,0.2);
+  }
+  .btn-icon:hover { background: rgba(255,255,255,0.08); transform: translateY(-2px); }
+  .btn-icon:active { transform: scale(0.95); }
+  
+  .btn-pill {
+    flex: 1; height: 50px; border-radius: 14px; border: 1px solid var(--glass-border);
+    background: rgba(255,255,255,0.03); color: #fff; font-weight: 600; font-size: 15px;
+    cursor: pointer; transition: all 0.2s; display: flex; align-items: center; justify-content: center; gap: 8px;
+  }
+  .btn-pill:hover { background: rgba(255,255,255,0.06); }
+  .btn-pill.primary { background: var(--accent); color: #000; border: none; box-shadow: 0 4px 12px rgba(56, 189, 248, 0.3); }
+  .btn-pill.primary:hover { background: #7dd3fc; }
+
+  /* Settings Area */
+  .settings-box { background: rgba(0,0,0,0.2); border-radius: 16px; padding: 16px; display: flex; gap: 12px; flex-wrap: wrap; align-items: center; }
+  .inp-group { display: flex; flex-direction: column; gap: 4px; }
+  .inp-styled {
+    background: rgba(0,0,0,0.3); border: 1px solid var(--glass-border); color: #fff;
+    border-radius: 8px; padding: 8px 12px; width: 60px; font-size: 14px; text-align: center;
+    outline: none; transition: border 0.2s;
+  }
+  .inp-styled:focus { border-color: var(--accent); }
+  .save-mini { background: var(--primary); color: #000; border:none; border-radius:8px; padding: 8px 16px; font-weight:700; font-size:13px; cursor:pointer; margin-left: auto; }
+
+  /* Summary Modal */
+  .modal-overlay {
+    position: fixed; inset: 0; background: rgba(0,0,0,0.85); backdrop-filter: blur(8px);
+    z-index: 100; display: none; align-items: center; justify-content: center; padding: 20px;
+  }
+  .modal-card {
+    background: #18181b; width: 100%; max-width: 800px; max-height: 90vh;
+    border-radius: 24px; border: 1px solid var(--glass-border); display: flex; flex-direction: column; overflow: hidden;
+    box-shadow: 0 50px 100px rgba(0,0,0,0.8);
+  }
+  @media(min-width: 768px){ .modal-card{ flex-direction: row; height: 500px; } }
 </style>
 </head>
 <body>
+
 <div class="app">
-  <div class="card" id="timerCard" role="application" aria-label="Question timer">
-    <div class="top-row">
-      <div class="qcount" id="qcount">1 / 100</div>
-      <div class="totaltime" id="totaltime">Total: 00:00</div>
+  <div class="card" id="timerCard">
+    
+    <div class="panel-left">
+      <div class="timer-wrapper">
+        <svg class="svg-circle" viewBox="0 0 120 120">
+          <circle class="circle-bg" cx="60" cy="60" r="52"></circle>
+          <circle id="progressRing" class="circle-prog" cx="60" cy="60" r="52" 
+                  stroke-dasharray="326.72" stroke-dashoffset="326.72"></circle>
+        </svg>
+        
+        <div class="timer-center">
+          <div class="timer-main-text mono-digit" id="centerMain">Start</div>
+          <div class="timer-sub-text" id="centerSub">Tap to begin</div>
+        </div>
+
+        <button id="circleBtn" class="circle-btn-overlay" aria-label="Toggle Timer"></button>
+      </div>
+
+      <div class="time-readout">
+        <div class="big-time mono-digit" id="elapsed">00:00</div>
+        <div class="target-time mono-digit">Target: <span id="targetTime">05:00</span></div>
+      </div>
+
+      <div id="timeAlert" class="time-alert">TIME UP!</div>
     </div>
 
-    <div class="circle-wrap">
-      <svg class="svg-circle" id="svgRoot" viewBox="0 0 120 120" role="img" aria-label="circular timer">
-        <circle cx="60" cy="60" r="52" stroke="rgba(255,255,255,0.06)" stroke-width="6" fill="transparent"/>
-        <circle id="progressRing" cx="60" cy="60" r="52" stroke="#6ee7b7" stroke-width="6" stroke-linecap="round" fill="transparent"
-                transform="rotate(-90 60 60)" stroke-dasharray="326.7256" stroke-dashoffset="326.7256"></circle>
-        <circle cx="60" cy="60" r="48.4" stroke="rgba(0,0,0,0.6)" stroke-width="9" fill="transparent"></circle>
-      </svg>
+    <div class="panel-right">
+      
+      <div>
+        <div class="header-row">
+          <div>
+            <div class="label">Progress</div>
+            <div class="q-counter mono-digit" id="qcount">1 / 100</div>
+          </div>
+          <div class="total-time mono-digit" id="totaltime">Total: 00:00</div>
+        </div>
 
-      <div class="center-label" style="width:240px;pointer-events:none;"> <div class="center-main" id="centerMain">Start</div>
-        <div class="center-sub" id="centerSub">Tap the circle to start</div>
+        <div class="hud-grid">
+          <div class="hud-item">
+            <span class="label">Attempts</span>
+            <span class="hud-val mono-digit" id="hudAttempts">0</span>
+          </div>
+          <div class="hud-item">
+            <span class="label">Question</span>
+            <span class="hud-val mono-digit" id="hudQuestion">1</span>
+          </div>
+        </div>
       </div>
 
-      <button id="circleBtn" aria-label="Start/Next"
-              style="position:absolute;left:50%;top:50%;transform:translate(-50%,-50%);width:240px;height:240px;border-radius:50%;
-              background:transparent;border:none;cursor:pointer;"></button>
-    </div>
+      <div>
+        <div class="controls-row">
+          <button class="btn-icon" id="pauseBtn" title="Pause">⏸</button>
+          
+          <button class="btn-pill" id="attemptBtn" title="Add Attempt">
+            <span>Attempt +1</span>
+          </button>
+          
+          <button class="btn-icon" id="stopBtn" title="Stop & Summarize" style="color:var(--danger); border-color: rgba(239,68,68,0.3)">⏹</button>
+        </div>
 
-    <div class="time-row">
-      <div class="small" id="elapsed">00:00</div>
-      <div>/</div>
-      <div id="targetTime">05:00</div>
-    </div>
+        <div class="settings-box">
+          <div class="inp-group">
+            <span class="label" style="font-size:10px; margin:0">Min/Q</span>
+            <input id="minutesInput" class="inp-styled mono-digit" type="number" min="1" value="5" />
+          </div>
+          <div class="inp-group">
+            <span class="label" style="font-size:10px; margin:0">Total Q</span>
+            <input id="totalInput" class="inp-styled mono-digit" type="number" min="1" value="100" />
+          </div>
+          <button id="saveBtn" class="save-mini">Apply</button>
+        </div>
 
-    <div class="controls">
-      <div style="display:flex;flex-direction:column;align-items:center">
-        <button class="circle-btn" id="pauseBtn" title="Pause / Resume"><span style="font-size:22px">⏸</span></button>
-        <div class="btn-label">Pause</div>
+        <div style="display:flex; justify-content:space-between; margin-top:16px; align-items:center;">
+          <span class="label" style="font-size:10px; opacity:0.6;">Auto-next enabled</span>
+          <button id="resetTotals" style="background:transparent; border:none; color:var(--text-muted); font-size:12px; cursor:pointer; text-decoration:underline;">Reset All</button>
+        </div>
       </div>
 
-      <div class="middle-actions">
-        <button class="attempt-btn" id="attemptBtn" title="Record attempt">Attempt ➕ <span style="opacity:0.9;margin-left:8px" id="attemptCount">0</span></button>
-        <button class="circle-btn" id="stopBtn" title="Stop quiz (show summary)"><span style="font-size:22px">⏹</span></button>
-      </div>
-
-      <div style="width:76px;height:76px;border-radius:50%"></div>
-      <div class="btn-label">&nbsp;</div>
-    </div>
-
-    <div class="hud" style="margin-top:14px">
-      <div class="chip">Question: <strong id="hudQuestion">1</strong></div>
-      <div class="chip">Attempts: <strong id="hudAttempts">0</strong></div>
-      <div class="chip">Target time/q: <strong id="hudSaved">05:00</strong></div>
-    </div>
-
-    <div class="time-alert" id="timeAlert" aria-live="polite">⏳ TIME UP!</div>
-
-    <div class="settings" style="margin-top:16px">
-      <div class="row">
-        <label style="color:var(--muted);font-size:14px">Minutes / Q</label>
-        <input id="minutesInput" type="number" min="1" inputmode="numeric" />
-      </div>
-      <div class="row">
-        <label style="color:var(--muted);font-size:14px">Total Q</label>
-        <input id="totalInput" type="number" min="1" inputmode="numeric" />
-      </div>
-      <div style="display:flex;align-items:center">
-        <button id="saveBtn">Save</button>
-      </div>
-    </div>
-
-    <div style="display:flex;justify-content:space-between;align-items:center;margin-top:14px">
-      <div class="note small-muted">Auto-start on Next • Attempts reset per question</div>
-      <div style="display:flex;gap:10px;align-items:center">
-        <button id="resetTotals" style="background:#3b3b3b;padding:9px;border-radius:8px;border:none;color:#fff;cursor:pointer">Reset</button>
-      </div>
     </div>
   </div>
 </div>
-<div class="summary-screen" id="summaryScreen" role="dialog" aria-modal="true">
-  <div class="summary-card" role="document">
-    <div class="summary-left">
-      <h2 style="margin:0 0 10px 0; font-size: 26px;">Quiz Summary</h2>
-      <p class="small-muted" style="margin:0 0 16px 0">Results for recorded questions</p>
+<div class="modal-overlay" id="summaryScreen">
+  <div class="modal-card">
+    
+    <div style="flex:1; padding:30px; background:#202024; display:flex; flex-direction:column; justify-content:center;">
+      <h2 style="font-size:28px; font-weight:700; margin-bottom:4px;">Quiz Complete</h2>
+      <p style="color:var(--text-muted); font-size:14px; margin-bottom:24px;">Here is how you performed</p>
 
-      <div class="stat">
-        <h3>Total time recorded</h3>
-        <p id="sumTotal">00:00</p>
-      </div>
-      <div class="stat">
-        <h3>Average time per Q</h3>
-        <p id="sumAvg">00:00</p>
-      </div>
-      <div class="stat">
-        <h3>Longest time</h3>
-        <p id="sumMax">00:00</p>
-      </div>
-      <div class="stat">
-        <h3>Shortest time</h3>
-        <p id="sumMin">00:00</p>
-      </div>
-
-      <div class="summary-actions">
-        <button id="restartBtn">Restart Quiz</button>
-        <button id="closeSummary">Close</button>
+      <div style="display:grid; grid-template-columns:1fr 1fr; gap:16px; margin-bottom:24px;">
+        <div class="hud-item">
+          <span class="label">Total Time</span>
+          <span class="hud-val mono-digit" id="sumTotal">00:00</span>
+        </div>
+        <div class="hud-item">
+          <span class="label">Avg Time</span>
+          <span class="hud-val mono-digit" id="sumAvg">00:00</span>
+        </div>
+        <div class="hud-item">
+          <span class="label">Fastest</span>
+          <span class="hud-val mono-digit" id="sumMin">00:00</span>
+        </div>
+        <div class="hud-item">
+          <span class="label">Slowest</span>
+          <span class="hud-val mono-digit" id="sumMax">00:00</span>
+        </div>
       </div>
 
-      <p style="margin-top:16px" class="small-muted">Total questions recorded: <span id="sumCount">0</span></p>
+      <div style="display:flex; gap:10px;">
+        <button id="restartBtn" class="btn-pill primary">Start New Quiz</button>
+        <button id="closeSummary" class="btn-pill" style="background:rgba(255,255,255,0.1)">Close</button>
+      </div>
     </div>
 
-    <div class="summary-right">
-      <h3 style="margin-top:0; font-size: 18px;">Time per question</h3>
-      <div class="times-list" id="timesList"></div>
+    <div style="flex:1; background:#18181b; padding:0; display:flex; flex-direction:column; border-left:1px solid var(--glass-border);">
+      <div style="padding:20px; border-bottom:1px solid var(--glass-border);">
+        <h3 style="font-size:16px; color:#fff;">Time Log</h3>
+        <p style="font-size:12px; color:var(--text-muted);">Recorded questions: <span id="sumCount">0</span></p>
+      </div>
+      <div id="timesList" style="flex:1; overflow-y:auto; padding:0;">
+        </div>
     </div>
+
   </div>
 </div>
 
@@ -194,366 +292,263 @@
 </audio>
 
 <script>
-/* ---------- State & storage keys ---------- */
+/* ================= LOGIC ================= */
+
+// --- State ---
 const STORAGE = {
-  minutes: 'qt_minutesPerQ',
-  totalQ: 'qt_totalQuestions',
-  curQ: 'qt_curQuestion',
-  accum: 'qt_totalAccum',
-  times: 'qt_questionTimes' // JSON array of seconds per question (recorded ones)
+  minutes: 'qt_min', totalQ: 'qt_tot', curQ: 'qt_cur', 
+  accum: 'qt_acc', times: 'qt_arr'
 };
 
-let curQuestion = parseInt(localStorage.getItem(STORAGE.curQ)) || 1;
-let totalQuestions = parseInt(localStorage.getItem(STORAGE.totalQ)) || 100;
-let minutesPerQ = parseInt(localStorage.getItem(STORAGE.minutes)) || 5;
-let totalAccumSeconds = parseInt(localStorage.getItem(STORAGE.accum)) || 0;
-let questionTimes = JSON.parse(localStorage.getItem(STORAGE.times) || '[]');
+let state = {
+  curQ: parseInt(localStorage.getItem(STORAGE.curQ)) || 1,
+  totalQ: parseInt(localStorage.getItem(STORAGE.totalQ)) || 100,
+  minPerQ: parseInt(localStorage.getItem(STORAGE.minutes)) || 5,
+  accumSec: parseInt(localStorage.getItem(STORAGE.accum)) || 0,
+  times: JSON.parse(localStorage.getItem(STORAGE.times) || '[]'),
+  
+  running: false,
+  seconds: 0,
+  attempts: 0,
+  extra: false
+};
 
-let running = false;
-let seconds = 0;            // elapsed seconds for current question
-let extraActive = false;
-let attemptCount = 0;
 let intervalId = null;
 
-/* ---------- DOM ---------- */
-const qcountEl = document.getElementById('qcount');
-const hudQuestion = document.getElementById('hudQuestion');
-const hudAttempts = document.getElementById('hudAttempts');
-const hudSaved = document.getElementById('hudSaved');
-const totaltimeEl = document.getElementById('totaltime');
+// --- DOM Elements ---
+const D = {
+  ring: document.getElementById('progressRing'),
+  lblMain: document.getElementById('centerMain'),
+  lblSub: document.getElementById('centerSub'),
+  elapsed: document.getElementById('elapsed'),
+  target: document.getElementById('targetTime'),
+  alert: document.getElementById('timeAlert'),
+  qcount: document.getElementById('qcount'),
+  totTime: document.getElementById('totaltime'),
+  hQ: document.getElementById('hudQuestion'),
+  hA: document.getElementById('hudAttempts'),
+  inMin: document.getElementById('minutesInput'),
+  inTot: document.getElementById('totalInput'),
+  
+  // Modals
+  summary: document.getElementById('summaryScreen'),
+  list: document.getElementById('timesList')
+};
 
-const centerMain = document.getElementById('centerMain');
-const centerSub = document.getElementById('centerSub');
+const SOUND = document.getElementById('alarmSound');
+const CIRCLE_LEN = 326.72; // 2 * PI * 52
 
-const elapsedEl = document.getElementById('elapsed');
-const targetEl = document.getElementById('targetTime');
-const minutesInput = document.getElementById('minutesInput');
-const totalInput = document.getElementById('totalInput');
-const saveBtn = document.getElementById('saveBtn');
-const attemptBtn = document.getElementById('attemptBtn');
-const attemptCountEl = document.getElementById('attemptCount');
-const pauseBtn = document.getElementById('pauseBtn');
-const stopBtn = document.getElementById('stopBtn');
-const circleBtn = document.getElementById('circleBtn');
-const progressRing = document.getElementById('progressRing');
-const timeAlert = document.getElementById('timeAlert');
-const resetTotals = document.getElementById('resetTotals');
+// --- Helper Functions ---
+const pad = n => n<10 ? '0'+n : ''+n;
+const fmt = s => `${pad(Math.floor(s/60))}:${pad(s%60)}`;
 
-const summaryScreen = document.getElementById('summaryScreen');
-const sumTotal = document.getElementById('sumTotal');
-const sumAvg = document.getElementById('sumAvg');
-const sumMax = document.getElementById('sumMax');
-const sumMin = document.getElementById('sumMin');
-const timesList = document.getElementById('timesList');
-const sumCount = document.getElementById('sumCount');
-const restartBtn = document.getElementById('restartBtn');
-const closeSummary = document.getElementById('closeSummary');
-
-const progressR = 52;
-const CIRC = 2 * Math.PI * progressR;
-progressRing.style.strokeDasharray = `${CIRC}`;
-progressRing.style.strokeDashoffset = `${CIRC}`;
-
-const alarmSound = document.getElementById('alarmSound');
-
-/* ---------- Helpers ---------- */
-function pad(n){ return n<10 ? '0'+n : ''+n; }
-function fmt(sec){ const m=Math.floor(sec/60); const s=sec%60; return `${pad(m)}:${pad(s)}`; }
-function saveAll(){
-  localStorage.setItem(STORAGE.minutes, String(minutesPerQ));
-  localStorage.setItem(STORAGE.totalQ, String(totalQuestions));
-  localStorage.setItem(STORAGE.curQ, String(curQuestion));
-  localStorage.setItem(STORAGE.accum, String(totalAccumSeconds));
-  localStorage.setItem(STORAGE.times, JSON.stringify(questionTimes));
+function save(){
+  localStorage.setItem(STORAGE.curQ, state.curQ);
+  localStorage.setItem(STORAGE.totalQ, state.totalQ);
+  localStorage.setItem(STORAGE.minutes, state.minPerQ);
+  localStorage.setItem(STORAGE.accum, state.accumSec);
+  localStorage.setItem(STORAGE.times, JSON.stringify(state.times));
 }
 
-/* ---------- UI sync ---------- */
-function refreshUI(){
-  qcountEl.textContent = `${curQuestion} / ${totalQuestions}`;
-  hudQuestion.textContent = curQuestion;
-  hudAttempts.textContent = attemptCount;
-  attemptCountEl.textContent = attemptCount;
-  minutesInput.value = minutesPerQ;
-  totalInput.value = totalQuestions;
-  hudSaved.textContent = fmt(minutesPerQ * 60);
-  elapsedEl.textContent = fmt(seconds);
-  targetEl.textContent = fmt(minutesPerQ * 60);
-  totaltimeEl.textContent = `Total: ${fmt(totalAccumSeconds)}`;
+// --- Render UI ---
+function render(){
+  // Texts
+  D.qcount.innerText = `${state.curQ} / ${state.totalQ}`;
+  D.hQ.innerText = state.curQ;
+  D.hA.innerText = state.attempts;
+  D.totTime.innerText = `Total: ${fmt(state.accumSec)}`;
+  D.elapsed.innerText = fmt(state.seconds);
+  D.target.innerText = fmt(state.minPerQ * 60);
 
-  // center label: when running show "Next" (per request), otherwise Start/Paused
-  if(running){
-    centerMain.textContent = 'Next';
-    centerSub.textContent = 'Click to save & go next';
-  } else if(!running && seconds === 0){
-    centerMain.textContent = 'Start';
-    centerSub.textContent = 'Tap the circle to start';
+  // Center Label
+  if(state.running){
+    D.lblMain.innerText = "Next";
+    D.lblSub.innerText = "Save & Continue";
+  } else if(!state.running && state.seconds === 0){
+    D.lblMain.innerText = "Start";
+    D.lblSub.innerText = "Tap to Begin";
   } else {
-    centerMain.textContent = 'Resume';
-    centerSub.textContent = 'Tap the circle to resume';
+    D.lblMain.innerText = "Resume";
+    D.lblSub.innerText = "Tap to Continue";
   }
 
-  // ring progress
-  const limit = minutesPerQ * 60;
-  const progress = Math.min(seconds / Math.max(limit,1), 1);
-  const offset = CIRC * (1 - progress);
-  progressRing.style.strokeDashoffset = `${offset}`;
+  // Inputs
+  if(document.activeElement !== D.inMin) D.inMin.value = state.minPerQ;
+  if(document.activeElement !== D.inTot) D.inTot.value = state.totalQ;
 
-  if(extraActive){
-    progressRing.style.stroke = '#ff6b6b';
-    progressRing.classList.add('pulse');
+  // Ring Animation
+  const limit = state.minPerQ * 60;
+  const pct = Math.min(state.seconds / Math.max(limit, 1), 1);
+  const offset = CIRCLE_LEN * (1 - pct);
+  D.ring.style.strokeDashoffset = offset;
+
+  // Colors & Alert
+  if(state.extra){
+    D.ring.style.stroke = 'var(--danger)';
+    D.ring.classList.add('pulse-ring');
+    D.alert.innerText = `+${fmt(state.seconds - limit)}`;
+    D.alert.classList.add('visible');
   } else {
-    progressRing.style.stroke = '#6ee7b7';
-    progressRing.classList.remove('pulse');
+    D.ring.style.stroke = 'var(--primary)';
+    D.ring.classList.remove('pulse-ring');
+    D.alert.classList.remove('visible');
   }
 }
 
-/* ---------- Timer logic ---------- */
-function startInterval(){
-  if(intervalId) return;
-  intervalId = setInterval(() => {
-    seconds += 1;
-    totalAccumSeconds += 1;
-    // periodic save
-    if(totalAccumSeconds % 5 === 0) saveAll();
-
-    const limit = minutesPerQ * 60;
-    if(seconds === limit){
-      triggerTimeUp();
-    }
-    if(seconds > limit){
-      extraActive = true;
-      timeAlert.textContent = `⏳ Extra: ${fmt(seconds - limit)}`;
-    }
-    refreshUI();
-  },1000);
+// --- Timer Engine ---
+function tick(){
+  state.seconds++;
+  state.accumSec++;
+  
+  const limit = state.minPerQ * 60;
+  if(state.seconds === limit) {
+    state.extra = true;
+    try{ SOUND.currentTime=0; SOUND.play().catch(e=>{}); }catch(e){}
+    if(navigator.vibrate) navigator.vibrate([200,100,200]);
+  }
+  
+  if(state.accumSec % 5 === 0) save(); // auto-save every 5s
+  render();
 }
 
-function stopInterval(){
-  if(intervalId){ clearInterval(intervalId); intervalId = null; }
-}
-
-function startTimer(){
-  if(running) return;
-  running = true;
-  extraActive = false;
-  timeAlert.classList.remove('show');
-  startInterval();
-  refreshUI();
+function toggleTimer(){
+  if(state.running){
+    // "Next" Action
+    nextQuestion();
+  } else {
+    // Start Action
+    state.running = true;
+    state.extra = (state.seconds > state.minPerQ * 60);
+    render();
+    intervalId = setInterval(tick, 1000);
+  }
 }
 
 function pauseTimer(){
-  running = false;
-  stopInterval();
-  refreshUI();
+  if(!state.running) return; // already paused
+  state.running = false;
+  clearInterval(intervalId);
+  render();
 }
 
-/* ---------- Next behavior (records current question time, moves to next or summary) ---------- */
-function recordCurrentQuestion(){
-  // Decide whether to record: if seconds > 0 OR attempts>0 -> record
-  if(seconds > 0 || attemptCount > 0){
-    questionTimes.push(seconds);
-    saveAll();
+// --- Core Actions ---
+function nextQuestion(){
+  // 1. Stop current
+  clearInterval(intervalId);
+  state.running = false;
+
+  // 2. Record
+  if(state.seconds > 0 || state.attempts > 0) {
+    state.times.push(state.seconds);
   } else {
-    // If nothing happened, still push 0 to keep question count consistent? We'll still push 0 to record answered zero-time
-    questionTimes.push(0);
-    saveAll();
+    state.times.push(0); 
   }
-}
 
-function nextQuestionAction(){
-  // Stop running timer for this question, record its time, then either go to next or end quiz
-  stopInterval();
-  running = false;
-  // record current question
-  recordCurrentQuestion();
-
-  // If this was final question -> show summary
-  if(curQuestion >= totalQuestions){
-    // show summary (auto-stop)
+  // 3. Check End
+  if(state.curQ >= state.totalQ){
+    save();
     showSummary();
     return;
   }
 
-  // Otherwise advance to next
-  curQuestion++;
-  seconds = 0;
-  attemptCount = 0;
-  extraActive = false;
-  timeAlert.classList.remove('show');
-  saveAll();
-  refreshUI();
+  // 4. Reset for Next
+  state.curQ++;
+  state.seconds = 0;
+  state.attempts = 0;
+  state.extra = false;
+  save();
+  render();
 
-  // --- NEW FEATURE: Auto-start next question timer ---
-  startTimer(); // Automatically start the timer for the new question
+  // 5. AUTO-START (Requested Feature)
+  state.running = true;
+  intervalId = setInterval(tick, 1000);
+  render();
 }
 
-/* ---------- Stop (END QUIZ) ---------- */
-function stopQuizAndShowSummary(){
-  // if current question has any elapsed time or attempts, record it
-  stopInterval();
-  running = false;
-  if(seconds > 0 || attemptCount > 0){
-    recordCurrentQuestion();
-  }
+function addAttempt(){
+  state.attempts++;
+  render();
+}
+
+function stopAndSummarize(){
+  clearInterval(intervalId);
+  state.running = false;
+  // if active progress, save it
+  if(state.seconds > 0) state.times.push(state.seconds);
+  save();
   showSummary();
 }
 
-/* ---------- TimeUp ---------- */
-function triggerTimeUp(){
-  try{ alarmSound.currentTime = 0; alarmSound.play().catch(()=>{}); }catch(e){}
-  if(navigator.vibrate) navigator.vibrate([200,100,200]);
-  timeAlert.textContent = '⏳ TIME UP!';
-  timeAlert.classList.add('show');
-  extraActive = true;
-  refreshUI();
-}
-
-/* ---------- Summary UI ---------- */
-function computeStats(arr){
-  if(!arr || arr.length===0) return {sum:0,avg:0,max:0,min:0};
-  const sum = arr.reduce((a,b)=>a+b,0);
-  const avg = Math.round(sum / arr.length);
-  const max = Math.max(...arr);
-  const min = Math.min(...arr);
-  return {sum,avg,max,min};
-}
-
+// --- Summary Logic ---
 function showSummary(){
-  // ensure saved state
-  saveAll();
-  // stop timers
-  stopInterval();
-  running = false;
-
-  // compute stats on recorded questionTimes
-  const stats = computeStats(questionTimes);
-  sumTotal.textContent = fmt(stats.sum);
-  sumAvg.textContent = fmt(stats.avg);
-  sumMax.textContent = fmt(stats.max);
-  sumMin.textContent = fmt(stats.min);
-  sumCount.textContent = questionTimes.length;
-
-  // populate list
-  timesList.innerHTML = '';
-  if(questionTimes.length === 0){
-    const noRow = document.createElement('div'); noRow.className='row'; noRow.textContent='No recorded questions yet.'; timesList.appendChild(noRow);
-  } else {
-    questionTimes.forEach((t,i)=>{
-      const row = document.createElement('div'); row.className='row';
-      const left = document.createElement('div'); left.textContent = `Q${i+1}`;
-      const right = document.createElement('div'); right.textContent = fmt(t);
-      row.appendChild(left); row.appendChild(right);
-      timesList.appendChild(row);
-    });
-  }
-
-  // show summary screen full-screen
-  summaryScreen.style.display = 'flex';
-}
-
-/* ---------- Reset / Restart ---------- */
-function restartQuiz(){
-  if(!confirm('Restart quiz and clear recorded times?')) return;
-  // clear stored progress
-  questionTimes = [];
-  curQuestion = 1;
-  seconds = 0;
-  attemptCount = 0;
-  totalAccumSeconds = 0;
-  extraActive = false;
-  saveAll();
-  summaryScreen.style.display = 'none';
-  refreshUI();
-}
-
-function closeSummaryScreen(){
-  summaryScreen.style.display = 'none';
-  // show timer UI (timerCard already visible)
-  refreshUI();
-}
-
-/* ---------- Event handlers ---------- */
-circleBtn.addEventListener('click', ()=>{
-  // If running -> act as Next
-  if(running){
-    nextQuestionAction();
-  } else {
-    // Not running -> start/resume
-    startTimer();
-  }
-});
-
-pauseBtn.addEventListener('click', ()=> {
-  if(running) pauseTimer(); else startTimer();
-});
-
-stopBtn.addEventListener('click', ()=> {
-  // Stop entire quiz and show summary
-  stopQuizAndShowSummary();
-});
-
-attemptBtn.addEventListener('click', ()=> {
-  attemptCount++;
-  hudAttempts.textContent = attemptCount;
-  attemptCountEl.textContent = attemptCount;
-});
-
-saveBtn.addEventListener('click', ()=>{
-  const m = parseInt(minutesInput.value) || minutesPerQ;
-  const t = parseInt(totalInput.value) || totalQuestions;
-  minutesPerQ = Math.max(1, m);
-  totalQuestions = Math.max(1, t);
+  const arr = state.times;
+  const sum = arr.reduce((a,b)=>a+b,0);
+  const avg = arr.length ? Math.round(sum/arr.length) : 0;
   
-  // If the current question exceeds the new total, adjust the current question
-  if (curQuestion > totalQuestions) {
-    curQuestion = totalQuestions;
-    if (totalQuestions === 0) { // Safety check for impossible scenario
-      curQuestion = 1;
-    }
-  }
+  document.getElementById('sumTotal').innerText = fmt(sum);
+  document.getElementById('sumAvg').innerText = fmt(avg);
+  document.getElementById('sumMin').innerText = fmt(arr.length ? Math.min(...arr) : 0);
+  document.getElementById('sumMax').innerText = fmt(arr.length ? Math.max(...arr) : 0);
+  document.getElementById('sumCount').innerText = arr.length;
 
-  saveAll();
-  // quick feedback
-  saveBtn.textContent = 'Saved ✓';
-  setTimeout(()=> saveBtn.textContent = 'Save', 800);
-  refreshUI();
-});
+  // Build List
+  D.list.innerHTML = '';
+  arr.forEach((t, i) => {
+    const row = document.createElement('div');
+    row.style.cssText = 'display:flex; justify-content:space-between; padding:12px 20px; border-bottom:1px solid rgba(255,255,255,0.05); color:#ddd; font-size:14px;';
+    row.innerHTML = `<span>Question ${i+1}</span> <span style="font-family:monospace">${fmt(t)}</span>`;
+    D.list.appendChild(row);
+  });
 
-resetTotals.addEventListener('click', ()=>{
-  if(!confirm('Reset total accumulated time and progress (keeps settings)?')) return;
-  totalAccumSeconds = 0;
-  curQuestion = 1;
-  seconds = 0;
-  attemptCount = 0;
-  questionTimes = [];
-  extraActive = false;
-  saveAll();
-  refreshUI();
-});
-
-/* summary screen controls */
-restartBtn.addEventListener('click', restartQuiz);
-closeSummary.addEventListener('click', closeSummaryScreen);
-
-/* keyboard */
-window.addEventListener('keydown', (e)=>{
-  if(e.code === 'Space'){ e.preventDefault(); if(running) pauseTimer(); else startTimer(); }
-  if(e.key === 'n' || e.key === 'N'){ // quick Next via keyboard when running
-    if(running) nextQuestionAction();
-  }
-});
-
-/* persist before unload */
-window.addEventListener('beforeunload', saveAll);
-
-/* ---------- Init ---------- */
-function init(){
-  minutesInput.value = minutesPerQ;
-  totalInput.value = totalQuestions;
-  saveAll();
-  refreshUI();
+  D.summary.style.display = 'flex';
 }
-init();
+
+function closeSummary(){
+  D.summary.style.display = 'none';
+  render();
+}
+
+function restart(){
+  if(!confirm("Erase all progress and restart?")) return;
+  state.curQ = 1;
+  state.seconds = 0;
+  state.attempts = 0;
+  state.accumSec = 0;
+  state.times = [];
+  state.extra = false;
+  state.running = false;
+  clearInterval(intervalId);
+  save();
+  closeSummary();
+}
+
+// --- Event Listeners ---
+document.getElementById('circleBtn').onclick = toggleTimer;
+document.getElementById('pauseBtn').onclick = () => { if(state.running) pauseTimer(); else toggleTimer(); };
+document.getElementById('attemptBtn').onclick = addAttempt;
+document.getElementById('stopBtn').onclick = stopAndSummarize;
+
+document.getElementById('saveBtn').onclick = function(){
+  const btn = this;
+  state.minPerQ = Math.max(1, parseInt(D.inMin.value));
+  state.totalQ = Math.max(1, parseInt(D.inTot.value));
+  if(state.curQ > state.totalQ) state.curQ = state.totalQ;
+  save(); render();
+  btn.innerText = "Saved!"; setTimeout(()=>btn.innerText="Apply", 1000);
+};
+
+document.getElementById('resetTotals').onclick = restart;
+document.getElementById('restartBtn').onclick = restart;
+document.getElementById('closeSummary').onclick = closeSummary;
+
+window.onkeydown = (e) => {
+  if(e.code === 'Space'){ e.preventDefault(); if(state.running) pauseTimer(); else toggleTimer(); }
+  if((e.key === 'n' || e.key === 'N') && state.running) nextQuestion();
+};
+
+// --- Init ---
+render();
+
 </script>
 </body>
 </html>
