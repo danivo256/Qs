@@ -1,0 +1,514 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width,initial-scale=1" />
+<title>Responsive Question Timer — Split Copy</title>
+<style>
+  :root{
+    --bg:#0f1114; --card:#141619; --muted:#9aa0a6; --accent:#cdd6dc;
+    --primary:#6ee7b7; --danger:#ff6b6b; --glass: rgba(255,255,255,0.03);
+  }
+  *{box-sizing:border-box}
+  html,body{height:100%;margin:0;background:var(--bg);font-family:Inter,system-ui,Segoe UI,Roboto,Arial;color:#eef2f5;-webkit-font-smoothing:antialiased}
+  .app{min-height:100vh;display:flex;align-items:center;justify-content:center;padding:28px}
+
+  /* CARD (center container) */
+  .card{
+    width:min(1100px,96%);
+    background:linear-gradient(180deg, rgba(255,255,255,0.02), rgba(255,255,255,0.01));
+    border-radius:14px;padding:18px;box-shadow:0 18px 60px rgba(0,0,0,0.6);border:1px solid rgba(255,255,255,0.03);
+    display:flex;flex-direction:column;gap:12px;
+  }
+
+  /* TOP row */
+  .top-row{display:flex;justify-content:space-between;align-items:center;gap:12px}
+  .qcount{font-size:18px;color:var(--accent);font-weight:600}
+  .totaltime{font-size:14px;color:var(--muted)}
+
+  /* LAYOUT: main area that holds timer + controls */
+  .main-area{
+    display:flex;gap:20px;align-items:center;justify-content:center;flex-wrap:wrap;
+  }
+
+  /* CIRCLE wrapper - auto-size based on viewport */
+  .circle-wrap{
+    flex: 0 1 420px; /* prefer up to 420px */
+    width: clamp(220px, 36vw, 460px); /* auto-sizing: min 220px, grows with viewport up to 460 */
+    height: auto;
+    display:flex;align-items:center;justify-content:center;flex-direction:column;
+    gap:10px;padding:8px;
+  }
+
+  .svg-container{
+    width:100%;
+    aspect-ratio:1/1;
+    position:relative;
+  }
+
+  svg{width:100%;height:100%;display:block}
+
+  .center-label{
+    position:absolute;left:50%;top:50%;transform:translate(-50%,-50%);pointer-events:none;text-align:center;width:66%;
+  }
+  .center-main{font-size:clamp(18px,2.4vw,34px);color:#e6eef0;font-weight:700}
+  .center-sub{font-size:clamp(10px,1.1vw,14px);color:var(--muted);margin-top:6px}
+
+  .time-row{display:flex;gap:10px;align-items:center;justify-content:center;margin-top:6px;color:var(--accent);font-size:clamp(14px,1.6vw,20px)}
+  .time-row .small{color:var(--muted);font-size:0.9em}
+
+  /* Controls column on the right (or below on small screens) */
+  .controls-col{
+    flex: 1 1 320px; min-width:240px; display:flex;flex-direction:column;gap:12px;align-items:center;
+  }
+
+  .controls{display:flex;gap:18px;align-items:center;justify-content:center;flex-wrap:wrap}
+  .circle-btn{width:72px;height:72px;border-radius:50%;display:inline-flex;align-items:center;justify-content:center;background:var(--glass);border:1px solid rgba(255,255,255,0.03);color:#eaeff0;font-size:20px;cursor:pointer}
+  .circle-btn:active{transform:scale(.98)}
+  .btn-label{font-size:12px;color:var(--muted);margin-top:6px;text-align:center}
+
+  .attempt-btn{padding:10px 16px;border-radius:10px;background:#222426;border:1px solid rgba(255,255,255,0.03);color:#e9eef0;cursor:pointer;font-weight:700}
+
+  .hud{display:flex;gap:8px;flex-wrap:wrap;justify-content:center}
+  .chip{background:rgba(255,255,255,0.02);padding:8px 12px;border-radius:12px;color:var(--muted);font-size:13px}
+
+  .settings{display:flex;gap:10px;align-items:center;flex-wrap:wrap;justify-content:center}
+  .settings input{width:92px;padding:8px;background:#0e0f10;border:1px solid rgba(255,255,255,0.03);color:#eaeff0;border-radius:8px;font-size:14px}
+  .settings button{padding:8px 12px;border-radius:10px;background:#2f3336;border:none;color:#fff;cursor:pointer;font-weight:700}
+
+  .time-alert{margin-top:6px;color:var(--danger);font-weight:800;font-size:15px;opacity:0;transition:opacity .9s ease,transform .3s}
+  .time-alert.show{opacity:1;transform:translateY(-4px)}
+  .pulse{animation:pulseRing 1s infinite ease-in-out}
+  @keyframes pulseRing{0%{transform:scale(1)}50%{transform:scale(1.02)}100%{transform:scale(1)}}
+
+  /* SUMMARY button row on bottom */
+  .foot-row{display:flex;justify-content:space-between;align-items:center;margin-top:4px}
+  .note{color:var(--muted);font-size:13px}
+
+  /* SUMMARY FULLSCREEN (Half 2 will continue with markup) */
+  /* Responsive tweaks */
+  @media (max-width:880px){
+    .card{padding:14px}
+    .main-area{flex-direction:column;align-items:center}
+    .controls-col{width:100%}
+  }
+
+  @media (min-width:1200px){
+    .card{padding:22px}
+    .circle-wrap{flex-basis:480px}
+    .controls-col{min-width:360px}
+  }
+</style>
+</head>
+<body>
+<div class="app">
+  <div class="card" id="cardRoot" role="application" aria-label="Question timer">
+    <div class="top-row">
+      <div class="qcount" id="qcount">1 / 100</div>
+      <div class="totaltime" id="totaltime">Total: 00:00</div>
+    </div>
+
+    <div class="main-area">
+      <!-- CIRCLE AREA -->
+      <div class="circle-wrap">
+        <div class="svg-container" aria-hidden="false">
+          <svg viewBox="0 0 120 120" id="svgRoot" role="img" aria-label="timer circle">
+            <circle cx="60" cy="60" r="52" stroke="rgba(255,255,255,0.06)" stroke-width="6" fill="transparent"/>
+            <circle id="progressRing" cx="60" cy="60" r="52" stroke="#6ee7b7" stroke-width="6" stroke-linecap="round" fill="transparent"
+                    transform="rotate(-90 60 60)" stroke-dasharray="326.7256" stroke-dashoffset="326.7256"></circle>
+            <circle cx="60" cy="60" r="48.4" stroke="rgba(0,0,0,0.6)" stroke-width="9" fill="transparent"></circle>
+          </svg>
+
+          <div class="center-label" id="centerLabel">
+            <div class="center-main" id="centerMain">Start</div>
+            <div class="center-sub" id="centerSub">Tap the circle to start</div>
+          </div>
+
+          <!-- Click overlay -->
+          <button id="circleBtn" aria-label="Start/Next"
+                  style="position:absolute;left:50%;top:50%;transform:translate(-50%,-50%);width:64%;aspect-ratio:1/1;border-radius:50%;background:transparent;border:none;cursor:pointer"></button>
+        </div>
+
+        <div class="time-row">
+          <div class="small" id="elapsed">00:00</div>
+          <div>/</div>
+          <div id="targetTime">05:00</div>
+        </div>
+
+        <div class="time-alert" id="timeAlert">⏳ TIME UP!</div>
+      </div>
+
+      <!-- CONTROLS COLUMN -->
+      <div class="controls-col">
+        <div class="controls">
+          <div style="display:flex;flex-direction:column;align-items:center">
+            <button class="circle-btn" id="pauseBtn" title="Pause / Resume">⏸</button>
+            <div class="btn-label">Pause</div>
+          </div>
+
+          <div style="display:flex;flex-direction:column;align-items:center">
+            <button class="attempt-btn" id="attemptBtn" title="Record attempt">Attempt ➕ <span id="attemptCount" style="margin-left:8px;font-weight:800">0</span></button>
+            <div class="btn-label">Attempts</div>
+          </div>
+
+          <div style="display:flex;flex-direction:column;align-items:center">
+            <button class="circle-btn" id="stopBtn" title="Stop quiz and show summary">⏹</button>
+            <div class="btn-label">Stop Quiz</div>
+          </div>
+        </div>
+
+        <div class="hud" style="margin-top:6px;justify-content:center">
+          <div class="chip">Question: <strong id="hudQuestion">1</strong></div>
+          <div class="chip">Attempts: <strong id="hudAttempts">0</strong></div>
+          <div class="chip">Time/Q: <strong id="hudSaved">05:00</strong></div>
+        </div>
+
+        <div class="settings" style="margin-top:10px">
+          <label style="color:var(--muted)">Minutes / Q</label>
+          <input id="minutesInput" type="number" min="1" />
+          <label style="color:var(--muted)">Total Q</label>
+          <input id="totalInput" type="number" min="1" />
+          <button id="saveBtn">Save</button>
+        </div>
+
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-top:8px;width:100%">
+          <div class="note">Auto-next on Next • Attempts reset per Q</div>
+          <div style="display:flex;gap:8px">
+            <button id="resetTotals" style="background:#2e3134;padding:8px;border-radius:8px;border:none;color:#fff;cursor:pointer">Reset</button>
+          </div>
+        </div>
+      </div>
+    </div>
+    <!-- SUMMARY FULLSCREEN -->
+    <div class="summary-screen" id="summaryScreen" style="display:none;position:fixed;inset:0;background:rgba(6,6,6,0.92);z-index:999;align-items:center;justify-content:center;padding:20px">
+      <div class="summary-card" style="width:min(1100px,96%);max-height:86vh;background:#0b0c0d;border-radius:12px;padding:18px;display:flex;gap:18px;overflow:hidden">
+        <div class="summary-left" style="width:360px;flex:0 0 360px;padding-right:12px;border-right:1px solid rgba(255,255,255,0.03);color:#e6eef0">
+          <h2 style="margin:0 0 8px 0">Quiz Summary</h2>
+          <p style="margin:0 0 14px;color:var(--muted)">Final results & timings</p>
+
+          <div style="display:flex;flex-direction:column;gap:10px">
+            <div style="background:rgba(255,255,255,0.02);padding:12px;border-radius:10px">
+              <h3 style="margin:0;color:var(--muted);font-size:13px">Total time</h3>
+              <p id="sumTotal" style="margin:6px 0 0;font-weight:800;font-size:20px">00:00</p>
+            </div>
+
+            <div style="background:rgba(255,255,255,0.02);padding:12px;border-radius:10px">
+              <h3 style="margin:0;color:var(--muted);font-size:13px">Average</h3>
+              <p id="sumAvg" style="margin:6px 0 0;font-weight:800;font-size:20px">00:00</p>
+            </div>
+
+            <div style="display:flex;gap:10px">
+              <div style="flex:1;background:rgba(255,255,255,0.02);padding:12px;border-radius:10px">
+                <h3 style="margin:0;color:var(--muted);font-size:13px">Longest</h3>
+                <p id="sumMax" style="margin:6px 0 0;font-weight:800;font-size:18px">00:00</p>
+              </div>
+              <div style="flex:1;background:rgba(255,255,255,0.02);padding:12px;border-radius:10px">
+                <h3 style="margin:0;color:var(--muted);font-size:13px">Shortest</h3>
+                <p id="sumMin" style="margin:6px 0 0;font-weight:800;font-size:18px">00:00</p>
+              </div>
+            </div>
+
+            <div style="display:flex;gap:8px;margin-top:8px">
+              <button id="restartBtn" style="flex:1;padding:10px;border-radius:10px;border:none;background:#1f7a59;color:#fff;cursor:pointer">Restart Quiz</button>
+              <button id="closeSummary" style="flex:1;padding:10px;border-radius:10px;border:none;background:#2f3436;color:#fff;cursor:pointer">Close</button>
+            </div>
+
+            <p style="margin-top:8px;color:var(--muted)">Total recorded: <strong id="sumCount">0</strong></p>
+          </div>
+        </div>
+
+        <div class="summary-right" style="flex:1;padding-left:6px;overflow:auto;color:#e6eef0">
+          <h3 style="margin-top:0">Time per question</h3>
+          <div id="timesList" style="margin-top:8px;display:flex;flex-direction:column;gap:6px"></div>
+        </div>
+      </div>
+    </div>
+
+  </div> <!-- end card -->
+</div> <!-- end app -->
+
+<!-- audio -->
+<audio id="alarmSound" preload="auto">
+  <source src="https://actions.google.com/sounds/v1/alarms/alarm_clock.ogg" type="audio/ogg">
+  <source src="https://actions.google.com/sounds/v1/alarms/beep_short.ogg" type="audio/ogg">
+</audio>
+
+<script>
+/* ---------- Storage keys ---------- */
+const STORAGE = {
+  minutes: 'qt_minutesPerQ',
+  totalQ: 'qt_totalQuestions',
+  curQ: 'qt_curQuestion',
+  accum: 'qt_totalAccum',
+  times: 'qt_questionTimes' // JSON array of seconds per question
+};
+
+/* ---------- State ---------- */
+let curQuestion = parseInt(localStorage.getItem(STORAGE.curQ)) || 1;
+let totalQuestions = parseInt(localStorage.getItem(STORAGE.totalQ)) || 100;
+let minutesPerQ = parseInt(localStorage.getItem(STORAGE.minutes)) || 5;
+let totalAccumSeconds = parseInt(localStorage.getItem(STORAGE.accum)) || 0;
+let questionTimes = JSON.parse(localStorage.getItem(STORAGE.times) || '[]');
+
+let running = false;
+let seconds = 0;
+let extraActive = false;
+let attemptCount = 0;
+let intervalId = null;
+
+/* ---------- DOM refs ---------- */
+const qcountEl = document.getElementById('qcount');
+const totaltimeEl = document.getElementById('totaltime');
+const centerMain = document.getElementById('centerMain');
+const centerSub = document.getElementById('centerSub');
+const elapsedEl = document.getElementById('elapsed');
+const targetEl = document.getElementById('targetTime');
+const minutesInput = document.getElementById('minutesInput');
+const totalInput = document.getElementById('totalInput');
+const saveBtn = document.getElementById('saveBtn');
+const attemptBtn = document.getElementById('attemptBtn');
+const attemptCountEl = document.getElementById('attemptCount');
+const pauseBtn = document.getElementById('pauseBtn');
+const stopBtn = document.getElementById('stopBtn');
+const circleBtn = document.getElementById('circleBtn');
+const progressRing = document.getElementById('progressRing');
+const timeAlert = document.getElementById('timeAlert');
+const resetTotals = document.getElementById('resetTotals');
+
+const summaryScreen = document.getElementById('summaryScreen');
+const sumTotal = document.getElementById('sumTotal');
+const sumAvg = document.getElementById('sumAvg');
+const sumMax = document.getElementById('sumMax');
+const sumMin = document.getElementById('sumMin');
+const timesList = document.getElementById('timesList');
+const sumCount = document.getElementById('sumCount');
+const restartBtn = document.getElementById('restartBtn');
+const closeSummary = document.getElementById('closeSummary');
+
+const hudQuestion = document.getElementById('hudQuestion');
+const hudAttempts = document.getElementById('hudAttempts');
+const hudSaved = document.getElementById('hudSaved');
+
+const progressR = 52;
+const CIRC = 2 * Math.PI * progressR;
+progressRing.style.strokeDasharray = `${CIRC}`;
+progressRing.style.strokeDashoffset = `${CIRC}`;
+
+const alarmSound = document.getElementById('alarmSound');
+
+/* ---------- Helpers ---------- */
+function pad(n){ return n<10 ? '0'+n : ''+n; }
+function fmt(sec){ const m=Math.floor(sec/60); const s=sec%60; return `${pad(m)}:${pad(s)}`; }
+function saveAll(){
+  localStorage.setItem(STORAGE.minutes, String(minutesPerQ));
+  localStorage.setItem(STORAGE.totalQ, String(totalQuestions));
+  localStorage.setItem(STORAGE.curQ, String(curQuestion));
+  localStorage.setItem(STORAGE.accum, String(totalAccumSeconds));
+  localStorage.setItem(STORAGE.times, JSON.stringify(questionTimes));
+}
+
+/* ---------- UI refresh ---------- */
+function refreshUI(){
+  qcountEl.textContent = `${curQuestion} / ${totalQuestions}`;
+  hudQuestion.textContent = curQuestion;
+  hudAttempts.textContent = attemptCount;
+  attemptCountEl.textContent = attemptCount;
+  minutesInput.value = minutesPerQ;
+  totalInput.value = totalQuestions;
+  hudSaved.textContent = fmt(minutesPerQ * 60);
+  elapsedEl.textContent = fmt(seconds);
+  targetEl.textContent = fmt(minutesPerQ * 60);
+  totaltimeEl.textContent = `Total: ${fmt(totalAccumSeconds)}`;
+
+  // center label: show Next when running
+  if(running){
+    centerMain.textContent = 'Next';
+    centerSub.textContent = 'Click to save & go next';
+  } else if(!running && seconds === 0){
+    centerMain.textContent = 'Start';
+    centerSub.textContent = 'Tap the circle to start';
+  } else {
+    centerMain.textContent = 'Resume';
+    centerSub.textContent = 'Tap the circle to resume';
+  }
+
+  // ring progress
+  const limit = minutesPerQ * 60;
+  const progress = Math.min(seconds / Math.max(limit,1), 1);
+  const offset = CIRC * (1 - progress);
+  progressRing.style.strokeDashoffset = `${offset}`;
+
+  if(extraActive){
+    progressRing.style.stroke = '#ff6b6b';
+    progressRing.classList.add('pulse');
+  } else {
+    progressRing.style.stroke = '#6ee7b7';
+    progressRing.classList.remove('pulse');
+  }
+}
+
+/* ---------- Timer functions ---------- */
+function startInterval(){
+  if(intervalId) return;
+  intervalId = setInterval(() => {
+    seconds += 1;
+    totalAccumSeconds += 1;
+    if(totalAccumSeconds % 5 === 0) saveAll();
+
+    const limit = minutesPerQ * 60;
+    if(seconds === limit) triggerTimeUp();
+    if(seconds > limit){
+      extraActive = true;
+      timeAlert.textContent = `⏳ Extra: ${fmt(seconds - limit)}`;
+    }
+    refreshUI();
+  },1000);
+}
+function stopInterval(){ if(intervalId){ clearInterval(intervalId); intervalId=null; } }
+
+function startTimer(){ if(running) return; running=true; extraActive=false; timeAlert.classList.remove('show'); startInterval(); refreshUI(); }
+function pauseTimer(){ running=false; stopInterval(); refreshUI(); }
+
+/* ---------- Record & Next ---------- */
+function recordCurrentQuestion(){
+  // push seconds for this question (even if zero)
+  questionTimes.push(seconds);
+  saveAll();
+}
+
+function nextQuestionAction(){
+  // acts like previous Stop button: record and advance
+  stopInterval();
+  running=false;
+  recordCurrentQuestion();
+
+  if(curQuestion >= totalQuestions){
+    // final => auto-stop and show summary
+    showSummary();
+    return;
+  }
+
+  curQuestion++;
+  seconds = 0;
+  attemptCount = 0;
+  extraActive = false;
+  timeAlert.classList.remove('show');
+  saveAll();
+  refreshUI();
+}
+
+/* ---------- Stop Quiz & Summary ---------- */
+function stopQuizAndShowSummary(){
+  stopInterval();
+  running=false;
+  // record current if any activity (or treat it as recorded 0)
+  if(seconds>0 || attemptCount>0 || questionTimes.length < curQuestion){
+    recordCurrentQuestion();
+  }
+  showSummary();
+}
+
+function triggerTimeUp(){
+  try{ alarmSound.currentTime=0; alarmSound.play().catch(()=>{}); }catch(e){}
+  if(navigator.vibrate) navigator.vibrate([200,100,200]);
+  timeAlert.textContent='⏳ TIME UP!';
+  timeAlert.classList.add('show');
+  extraActive=true;
+  refreshUI();
+}
+
+/* ---------- Summary UI ---------- */
+function computeStats(arr){
+  if(!arr || arr.length===0) return {sum:0,avg:0,max:0,min:0};
+  const sum = arr.reduce((a,b)=>a+b,0);
+  const avg = Math.round(sum / arr.length);
+  const max = Math.max(...arr);
+  const min = Math.min(...arr);
+  return {sum,avg,max,min};
+}
+
+function showSummary(){
+  saveAll();
+  stopInterval();
+  running=false;
+
+  const stats = computeStats(questionTimes);
+  sumTotal.textContent = fmt(stats.sum);
+  sumAvg.textContent = fmt(stats.avg);
+  sumMax.textContent = fmt(stats.max);
+  sumMin.textContent = fmt(stats.min);
+  sumCount.textContent = questionTimes.length;
+
+  timesList.innerHTML = '';
+  if(questionTimes.length===0){
+    const el = document.createElement('div'); el.textContent='No recorded questions'; el.style.color='var(--muted)'; timesList.appendChild(el);
+  } else {
+    questionTimes.forEach((t,i)=>{
+      const row = document.createElement('div'); row.style.display='flex'; row.style.justifyContent='space-between'; row.style.padding='8px'; row.style.borderBottom='1px dashed rgba(255,255,255,0.03)';
+      const left = document.createElement('div'); left.textContent = `Q${i+1}`;
+      const right = document.createElement('div'); right.textContent = fmt(t);
+      row.appendChild(left); row.appendChild(right);
+      timesList.appendChild(row);
+    });
+  }
+
+  summaryScreen.style.display='flex';
+}
+
+/* ---------- Reset / Restart ---------- */
+function restartQuiz(){
+  if(!confirm('Restart quiz and clear recorded times?')) return;
+  questionTimes = [];
+  curQuestion = 1;
+  seconds = 0;
+  attemptCount = 0;
+  totalAccumSeconds = 0;
+  extraActive = false;
+  saveAll();
+  summaryScreen.style.display='none';
+  refreshUI();
+}
+function closeSummary(){ summaryScreen.style.display='none'; refreshUI(); }
+
+/* ---------- Events ---------- */
+circleBtn.addEventListener('click', ()=>{
+  if(running) nextQuestionAction();
+  else startTimer();
+});
+pauseBtn.addEventListener('click', ()=>{ if(running) pauseTimer(); else startTimer(); });
+stopBtn.addEventListener('click', ()=>{ stopQuizAndShowSummary(); });
+attemptBtn.addEventListener('click', ()=>{ attemptCount++; hudAttempts.textContent=attemptCount; attemptCountEl.textContent=attemptCount; });
+saveBtn.addEventListener('click', ()=>{
+  const m = parseInt(minutesInput.value) || minutesPerQ;
+  const t = parseInt(totalInput.value) || totalQuestions;
+  minutesPerQ = Math.max(1,m);
+  totalQuestions = Math.max(1,t);
+  saveAll();
+  saveBtn.textContent='Saved ✓';
+  setTimeout(()=> saveBtn.textContent='Save',800);
+  refreshUI();
+});
+resetTotals.addEventListener('click', ()=>{
+  if(!confirm('Reset total time and clear recorded times?')) return;
+  totalAccumSeconds = 0; curQuestion = 1; seconds = 0; attemptCount = 0; questionTimes = []; extraActive=false; saveAll(); refreshUI();
+});
+restartBtn.addEventListener('click', restartQuiz);
+closeSummary.addEventListener('click', closeSummary);
+
+window.addEventListener('keydown', (e)=>{
+  if(e.code==='Space'){ e.preventDefault(); if(running) pauseTimer(); else startTimer(); }
+  if(e.key==='n' || e.key==='N'){ if(running) nextQuestionAction(); }
+});
+window.addEventListener('beforeunload', saveAll);
+
+/* ---------- INIT ---------- */
+function init(){
+  minutesInput.value = minutesPerQ;
+  totalInput.value = totalQuestions;
+  saveAll();
+  refreshUI();
+}
+init();
+</script>
+</body>
+</html>
